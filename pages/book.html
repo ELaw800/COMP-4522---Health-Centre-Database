@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Book | PEMV Health</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <!-- SITE HEADER -->
+    <header>
+        <a href="../index.html">PEMV Health</a>
+        <nav>
+            <ul>
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="new-patient.html">New Patients</a></li>
+                <li><a href="book.html">Book Appointment</a></li>
+                <li><a href="my-info.html">My Info</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Book an Appointment</h1>
+        <p>Enter the details you registered with, then pick a doctor and time.
+            Not registered yet? <a href="new-patient.html">Register here</a>.</p>
+
+        <form id="book-form" class="compact-form">
+            <fieldset>
+                <legend>Your Details</legend>
+                <div class="row">
+                    <div class="field">
+                        <label for="first_name">First Name</label>
+                        <input type="text" id="first_name" name="first_name" autocomplete="given-name" required>
+                    </div>
+                    <div class="field">
+                        <label for="last_name">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" autocomplete="family-name" required>
+                    </div>
+                    <div class="field">
+                        <label for="date_of_birth">Date of Birth</label>
+                        <input type="date" id="date_of_birth" name="date_of_birth" autocomplete="bday" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Appointment</legend>
+                <div class="field">
+                    <label for="staff_id">Doctor</label>
+                    <select id="staff_id" name="staff_id" required>
+                        <option value="">Loading doctors...</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <div class="field">
+                        <label for="appt_date">Date</label>
+                        <input type="date" id="appt_date" name="appt_date" required>
+                    </div>
+                    <div class="field">
+                        <label for="appt_time">Time</label>
+                        <input type="time" id="appt_time" name="appt_time" step="900" required>
+                    </div>
+                    <div class="field">
+                        <label for="duration_minutes">Length</label>
+                        <select id="duration_minutes" name="duration_minutes" required>
+                            <option value="20">20 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">60 minutes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="other_details">Reason for Visit (optional)</label>
+                    <textarea id="other_details" name="other_details" rows="2"></textarea>
+                </div>
+            </fieldset>
+
+            <button type="submit">Book</button>
+        </form>
+        <p id="form-message"></p>
+    </main>
+
+<script type="module">
+  import { getDoctors, addAppointment } from '../db/db.js';
+
+  const form = document.getElementById('book-form');
+  const message = document.getElementById('form-message');
+  const button = form.querySelector('button[type="submit"]');
+  const doctorSelect = document.getElementById('staff_id');
+  const dateInput = document.getElementById('appt_date');
+
+  // No booking in the past
+  const now = new Date();
+  dateInput.min = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+  // Fill the Doctor dropdown from the staff table
+  async function loadDoctors() {
+    const { data, error } = await getDoctors();
+
+    if (error || !data.length) {
+      doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+      if (error) message.textContent = 'Could not load doctors: ' + error.message;
+      return;
+    }
+
+    doctorSelect.innerHTML = '<option value="">Choose a doctor</option>';
+    for (const doc of data) {
+      const option = document.createElement('option');
+      option.value = doc.staff_id;
+      option.textContent = `Dr. ${doc.first_name} ${doc.last_name}` +
+        (doc.qualifications ? ` (${doc.qualifications})` : '');
+      doctorSelect.appendChild(option);
+    }
+  }
+  loadDoctors();
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(form);
+    const patientInfo = {
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      date_of_birth: formData.get('date_of_birth')
+    };
+
+    const appointment = {
+      staff_id: Number(formData.get('staff_id')),
+      date_time_of_appointment: `${formData.get('appt_date')}T${formData.get('appt_time')}:00`,
+      duration_minutes: Number(formData.get('duration_minutes')),
+      appointment_status: 'Scheduled',
+      other_details: formData.get('other_details') || null
+    };
+
+    button.disabled = true;
+    message.textContent = 'Booking...';
+
+    const { error } = await addAppointment(patientInfo, appointment);
+
+    if (error) {
+      message.textContent = 'Something went wrong: ' + error.message;
+    } else {
+      message.textContent = 'Your appointment is booked.';
+      form.reset();
+    }
+
+    button.disabled = false;
+  });
+</script>
+</body>
+</html>

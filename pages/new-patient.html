@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>New Patients | PEMV Health</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <!-- SITE HEADER -->
+     <header>
+        <a href="../index.html">PEMV Health</a>
+        <nav>
+            <ul>
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="new-patient.html">New Patients</a></li>
+                <li><a href="book.html">Book Appointment</a></li>
+                <li><a href="my-info.html">My Info</a></li>
+            </ul>
+        </nav>
+     </header>
+
+     <main>
+        <h1> Welcome to PEMV Clinic </h1>
+        <p> Please fill out the form below to register with us</p>
+
+        <!-- Patient registration, referenced https://www.w3schools.com/html/html_forms.asp -->
+        <form id="registration-form" class="compact-form">
+            <div class="row">
+                <div class="field">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" autocomplete="given-name" required>
+                </div>
+                <div class="field">
+                    <label for="middle_name">Middle Name</label>
+                    <input type="text" id="middle_name" name="middle_name" autocomplete="additional-name">
+                </div>
+                <div class="field">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" autocomplete="family-name" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="field">
+                    <label for="date_of_birth">Date of Birth</label>
+                    <input type="date" id="date_of_birth" name="date_of_birth" autocomplete="bday" required>
+                </div>
+                <div class="field">
+                    <label for="phone_number">Phone Number</label>
+                    <input type="tel" id="phone_number" name="phone_number" autocomplete="tel">
+                </div>
+                <fieldset class="field inline">
+                    <legend>Gender</legend>
+                    <div class="choices">
+                        <label class="choice"><input type="radio" name="gender" value="Male" required> Male</label>
+                        <label class="choice"><input type="radio" name="gender" value="Female"> Female</label>
+                        <label class="choice"><input type="radio" name="gender" value="Unknown"> Other</label>
+                    </div>
+                </fieldset>
+            </div>
+
+            <fieldset>
+                <legend>Address</legend>
+                <div class="row street">
+                    <div class="field">
+                        <label for="street_number">Number</label>
+                        <input type="text" id="street_number" name="street_number" required>
+                    </div>
+                    <div class="field">
+                        <label for="street_name">Street Name</label>
+                        <input type="text" id="street_name" name="street_name" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="field">
+                        <label for="city">City</label>
+                        <input type="text" id="city" name="city" autocomplete="address-level2" required>
+                    </div>
+                    <div class="field">
+                        <label for="province">Province</label>
+                        <input type="text" id="province" name="province" autocomplete="address-level1" required>
+                    </div>
+                    <div class="field">
+                        <label for="postal_code">Postal Code</label>
+                        <input type="text" id="postal_code" name="postal_code" autocomplete="postal-code" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="field">
+                <label for="other_details">Other Details</label>
+                <textarea id="other_details" name="other_details" rows="3"></textarea>
+            </div>
+
+            <button type="submit">Submit Form</button>
+        </form>
+        <p id="form-message"></p>
+     </main>
+<script type="module">
+  import { addPatient } from '../db/db.js';
+
+  const form = document.getElementById('registration-form');
+  const message = document.getElementById('form-message');
+  const button = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(form);
+    const patient = {
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      middle_name: formData.get('middle_name') || null,
+      date_of_birth: formData.get('date_of_birth'),
+      gender: formData.get('gender'),
+      phone_number: formData.get('phone_number') || null,
+      other_details: formData.get('other_details') || null
+    };
+
+    const address = {
+      street_number: formData.get('street_number'),
+      street_name: formData.get('street_name'),
+      city: formData.get('city'),
+      province: formData.get('province'),
+      postal_code: formData.get('postal_code')
+    };
+
+    button.disabled = true;
+    message.textContent = 'Submitting...';
+
+    console.log('sending:', patient, address);
+    const { error } = await addPatient(patient, address);
+
+    if (error) {
+      message.textContent = 'Something went wrong: ' + error.message;
+    } else {
+      message.textContent = 'Thanks! You are now registered.';
+      form.reset();
+    }
+
+    button.disabled = false;
+  });
+</script>
+</body>
+</html>
