@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Log In | PEMV Health</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <!-- SITE HEADER -->
+    <header>
+        <a href="../index.html">PEMV Health</a>
+        <nav>
+            <ul>
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="new-patient.html">New Patients</a></li>
+                <li><a href="book.html">Book Appointment</a></li>
+                <li><a href="my-info.html">My Info</a></li>
+                <li><a href="staff-tools.html">Staff Tools</a></li>
+                <li><a href="login.html">Log In</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Log In</h1>
+        <p>Patients: use your patient ID number. Staff: use your staff code (e.g. pemv12).</p>
+
+        <form id="login-form" class="compact-form">
+            <div class="row">
+                <div class="field">
+                    <label for="id">Patient ID or Staff Code</label>
+                    <input type="text" id="id" name="id" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+            </div>
+            <button type="submit">Log In</button>
+        </form>
+
+        <div id="logged-in" hidden>
+            <p id="welcome"></p>
+            <button id="logout">Log Out</button>
+        </div>
+        <p id="form-message"></p>
+    </main>
+
+<script type="module">
+  import { logIn, getUser, logOut } from '../db/db.js';
+
+  const form = document.getElementById('login-form');
+  const loggedIn = document.getElementById('logged-in');
+  const message = document.getElementById('form-message');
+
+  // Show the form, or who is logged in
+  function render() {
+    const user = getUser();
+    form.hidden = !!user;
+    loggedIn.hidden = !user;
+    if (user) {
+      document.getElementById('welcome').textContent = user.role === 'staff'
+        ? `Logged in as staff member ${user.id}.`
+        : `Logged in as patient ${user.id}.`;
+    }
+  }
+  render();
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+
+    message.textContent = 'Logging in...';
+    const { error } = await logIn(formData.get('id'), formData.get('password'));
+
+    if (error) {
+      message.textContent = error.message;
+    } else {
+      message.textContent = '';
+      form.reset();
+      render();
+      // later: location.href = 'my-info.html';
+    }
+  });
+
+  document.getElementById('logout').addEventListener('click', () => {
+    logOut();
+    render();
+  });
+</script>
+</body>
+</html>

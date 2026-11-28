@@ -61,3 +61,39 @@ export async function addAppointment(patientInfo, appointment) {
 
   return { data, error };
 }
+
+// automation for login
+// Patients log in with their patient ID (e.g. 12), staff with their staff code (e.g. pemv12).
+// The database checks the password; the browser only remembers who logged in.
+export async function logIn(id, password) {
+  id = id.trim().toLowerCase();
+  let role, result;
+
+  if (/^pemv\d+$/.test(id)) {
+    role = 'staff';
+    result = await supabase.rpc('staff_login', { p_code: id, p_password: password });
+  } else if (/^\d+$/.test(id)) {
+    role = 'patient';
+    id = Number(id);
+    result = await supabase.rpc('patient_login', { p_id: id, p_password: password });
+  } else {
+    return { error: { message: 'Enter your patient ID number, or your staff code (pemv...).' } };
+  }
+
+  if (result.error) return { error: result.error };
+  if (!result.data) return { error: { message: 'Wrong ID or password.' } };
+
+  // Kept for this tab only (cleared when it closes). Other pages send these to the
+  // database functions, which re-check the password on every call.
+  sessionStorage.setItem('user', JSON.stringify({ role, id, password }));
+  return { error: null };
+}
+
+// Who is logged in: { role: 'patient' | 'staff', id, password } or null
+export function getUser() {
+  return JSON.parse(sessionStorage.getItem('user'));
+}
+
+export function logOut() {
+  sessionStorage.removeItem('user');
+}

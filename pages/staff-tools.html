@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Staff Tools | PEMV Health</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <!-- SITE HEADER -->
+    <header>
+        <a href="../index.html">PEMV Health</a>
+        <nav>
+            <ul>
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="new-patient.html">New Patients</a></li>
+                <li><a href="book.html">Book Appointment</a></li>
+                <li><a href="my-info.html">My Info</a></li>
+                <li><a href="staff-tools.html">Staff Tools</a></li>
+                <li><a href="login.html">Log In</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Staff Tools</h1>
+        <h2> View patient appointments </h2>
+        <form class="compact-form">
+            <div class="field">
+                <label for="patient">Patient</label>
+                <select id="patient">
+                    <option value="">Loading patients...</option>
+                </select>
+            </div>
+        </form>
+
+        <p id="message"></p>
+        <figure id="results"></figure>
+    </main>
+
+<script type="module">
+  import { supabase, getUser } from '../db/db.js';
+
+  const user = getUser();
+  const select = document.getElementById('patient');
+  const message = document.getElementById('message');
+  const results = document.getElementById('results');
+
+  // Staff only. The database functions re-check the code + password anyway.
+  if (!user || user.role !== 'staff') {
+    location.href = 'login.html';
+  } else {
+    loadPatients();
+  }
+
+  async function loadPatients() {
+    const { data, error } = await supabase.rpc('staff_list_patients', {
+      p_code: user.id, p_password: user.password
+    });
+
+    if (error) {
+      select.innerHTML = '<option value="">Could not load patients</option>';
+      message.textContent = error.message;
+      return;
+    }
+
+    select.innerHTML = '<option value="">Choose a patient</option>';
+    for (const p of data) {
+      const option = document.createElement('option');
+      option.value = p.patient_id;
+      option.textContent = `${p.last_name}, ${p.first_name} (#${p.patient_id})`;
+      select.appendChild(option);
+    }
+  }
+
+  select.addEventListener('change', async () => {
+    results.replaceChildren();
+    message.textContent = '';
+    if (!select.value) return;
+
+    const { data, error } = await supabase.rpc('staff_patient_appointments', {
+      p_code: user.id, p_password: user.password, p_patient_id: Number(select.value)
+    });
+
+    if (error) message.textContent = error.message;
+    else if (!data.length) message.textContent = 'No appointments for this patient.';
+    else results.appendChild(makeTable(data));
+  });
+
+  // Turn rows into a table; column names become the headers
+  function makeTable(rows) {
+    const table = document.createElement('table');
+    const header = table.createTHead().insertRow();
+    for (const col of Object.keys(rows[0])) {
+      const th = document.createElement('th');
+      th.textContent = col.replaceAll('_', ' ');
+      header.appendChild(th);
+    }
+    const body = table.createTBody();
+    for (const row of rows) {
+      const tr = body.insertRow();
+      for (const value of Object.values(row)) tr.insertCell().textContent = value ?? '';
+    }
+    return table;
+  }
+</script>
+</body>
+</html>
